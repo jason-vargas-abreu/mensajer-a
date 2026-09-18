@@ -515,6 +515,12 @@
     align-items:center;
     margin-bottom:16px;
   }
+  .pkg-note{
+    font-size:0.85rem;
+    color:var(--grey);
+    margin:-4px 0 14px;
+    line-height:1.4;
+  }
   .total-card span{font-size:0.95rem;opacity:0.9;}
   .total-card b{
     font-family:'Baloo 2', sans-serif;
@@ -1054,6 +1060,7 @@
       <span>Total a pagar</span>
       <b id="total-delivery">RD$0</b>
     </div>
+    <p class="pkg-note" id="note-delivery"></p>
     <a class="btn btn-outline" style="width:100%" id="wa-delivery" href="#" target="_blank" rel="noopener">Enviar esta cotización por WhatsApp</a>
   </div>
 
@@ -1068,6 +1075,7 @@
       <span>Total a pagar</span>
       <b id="total-ruta">RD$0</b>
     </div>
+    <p class="pkg-note" id="note-ruta"></p>
     <a class="btn btn-outline" style="width:100%" id="wa-ruta" href="#" target="_blank" rel="noopener">Enviar esta cotización por WhatsApp</a>
   </div>
 </section>
@@ -1186,9 +1194,19 @@ function updateSliderUI(type, idx){
   if(priceEl) priceEl.textContent = `RD$${priceFor(type, km)}`;
 }
 
+function pkgNoteText(){
+  const w = (typeof window.pkgW === 'number') ? window.pkgW : null;
+  const h = (typeof window.pkgH === 'number') ? window.pkgH : null;
+  const max = (typeof window.pkgMaxBoxesVal === 'number') ? window.pkgMaxBoxesVal : null;
+  if(w === null || h === null || max === null) return '';
+  return `Nota: El/Los paquetes son de ${w}" anchura por ${h}" altura y caben solo ${max} cantidad por viaje.`;
+}
+
 function updateTotal(type){
   const total = state[type].reduce((sum, o)=> sum + priceFor(type, o.km), 0);
   document.getElementById('total-'+type).textContent = `RD$${total}`;
+  const noteEl = document.getElementById('note-'+type);
+  if(noteEl) noteEl.textContent = pkgNoteText();
   updateWaLink(type, total);
 }
 
@@ -1201,6 +1219,8 @@ function updateWaLink(type, total){
     }
   });
   lines.push(`Total: RD$${total}`);
+  const note = pkgNoteText();
+  if(note) lines.push(note);
   document.getElementById('wa-'+type).href = waLink(lines.join('\n'));
 }
 
@@ -1384,13 +1404,17 @@ document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
     draw(layout);
 
-    maxBoxesEl.innerHTML = pkgMaxBoxes(W, H) + '<span>paquetes</span>';
+    const maxBoxesVal = pkgMaxBoxes(W, H);
+    maxBoxesEl.innerHTML = maxBoxesVal + '<span>paquetes</span>';
     const extra = pkgExtraPrice(W, H);
     priceEl.innerHTML = '$' + extra + '<span>pesos</span>';
     priceHintEl.textContent = 'lado mayor ' + Math.max(W, H) + '"';
 
-    // Share the extra cost with the calculator so it's added to every pedido,
-    // then re-render both calculators so prices/totals reflect it immediately.
+    // Share the package dimensions/capacity and extra cost with the calculator so
+    // totals, the note and the WhatsApp message reflect them immediately.
+    window.pkgW = W;
+    window.pkgH = H;
+    window.pkgMaxBoxesVal = maxBoxesVal;
     window.pkgPackageExtra = extra;
     if (typeof renderOrders === 'function'){
       renderOrders('delivery');
